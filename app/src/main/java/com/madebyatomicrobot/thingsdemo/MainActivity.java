@@ -17,7 +17,7 @@ public class MainActivity extends AppCompatActivity {
 
     private PeripheralManagerService service;
     private ToggleButton ledToggleView;
-    private Gpio pin21;
+    private Gpio pin17;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,14 +32,14 @@ public class MainActivity extends AppCompatActivity {
         ledToggleView = (ToggleButton) findViewById(R.id.ledToggle);
 
         try {
-            pin21 = service.openGpio("BCM17");
-            pin21.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            pin17 = service.openGpio("BCM17");
+            pin17.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
         } catch (IOException ex) {
             Log.e(TAG, "Error during onCreate!", ex);
         }
 
         try {
-            ledToggleView.setChecked(pin21.getValue());
+            ledToggleView.setChecked(pin17.getValue());
         } catch (IOException ex) {
             Log.e(TAG, "Error during setChecked!", ex);
         }
@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 try {
-                    pin21.setValue(isChecked);
+                    pin17.setValue(isChecked);
                 } catch (IOException ex) {
                     Log.e(TAG, "Error during onCheckedChanged!", ex);
                 }
@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         try {
-            pin21.close();
+            pin17.close();
         } catch (IOException ex) {
             Log.e(TAG, "Error during onDestroy!", ex);
         }
