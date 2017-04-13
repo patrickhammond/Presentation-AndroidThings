@@ -8,6 +8,7 @@ import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ToggleButton;
 
 import com.google.android.things.pio.Gpio;
+import com.google.android.things.pio.GpioCallback;
 import com.google.android.things.pio.PeripheralManagerService;
 
 import java.io.IOException;
@@ -19,6 +20,9 @@ public class MainActivity extends AppCompatActivity {
     private ToggleButton ledToggleView;
     private Gpio pin17;
 
+    private Gpio pin22;
+    private GpioCallback pin22Callback;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -26,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
         service = new PeripheralManagerService();
 
         setupDemo1();
+        setupDemo2();
     }
 
     private void setupDemo1() {
@@ -56,10 +61,38 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void setupDemo2() {
+        try {
+            pin22 = service.openGpio("BCM22");
+            pin22.setDirection(Gpio.DIRECTION_IN);
+            pin22.setActiveType(Gpio.ACTIVE_HIGH);
+            pin22.setEdgeTriggerType(Gpio.EDGE_FALLING);
+
+            pin22Callback = new GpioCallback() {
+                @Override
+                public boolean onGpioEdge(Gpio gpio) {
+                    ledToggleView.setChecked(!ledToggleView.isChecked());
+                    return true;
+                }
+
+                @Override
+                public void onGpioError(Gpio gpio, int error) {
+                    Log.e(TAG, "Error during pin22 gpio callback: " + error);
+                }
+            };
+            pin22.registerGpioCallback(pin22Callback);
+        } catch (IOException ex) {
+            Log.e(TAG, "Error during onCreate!", ex);
+        }
+    }
+
     @Override
     protected void onDestroy() {
         try {
             pin17.close();
+
+            pin22.unregisterGpioCallback(pin22Callback);
+            pin22.close();
         } catch (IOException ex) {
             Log.e(TAG, "Error during onDestroy!", ex);
         }
