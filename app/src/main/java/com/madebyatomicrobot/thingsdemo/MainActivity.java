@@ -5,11 +5,14 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.SeekBar;
+import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.ToggleButton;
 
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.GpioCallback;
 import com.google.android.things.pio.PeripheralManagerService;
+import com.google.android.things.pio.Pwm;
 
 import java.io.IOException;
 
@@ -18,10 +21,14 @@ public class MainActivity extends AppCompatActivity {
 
     private PeripheralManagerService service;
     private ToggleButton ledToggleView;
+    private SeekBar ledBrightnessView;
+
     private Gpio pin17;
 
     private Gpio pin22;
     private GpioCallback pin22Callback;
+
+    private Pwm pwm0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
 
         setupDemo1();
         setupDemo2();
+        setupDemo3();
     }
 
     private void setupDemo1() {
@@ -86,6 +94,39 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void setupDemo3() {
+        ledBrightnessView = (SeekBar) findViewById(R.id.ledBrightness);
+
+        try {
+            pwm0 = service.openPwm("PWM0");
+            pwm0.setPwmFrequencyHz(120);
+            pwm0.setEnabled(true);
+        } catch (IOException ex) {
+            Log.e(TAG, "Error during onCreate!", ex);
+        }
+
+        ledBrightnessView.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                try {
+                    pwm0.setPwmDutyCycle(progress);
+                } catch (IOException ex) {
+                    Log.e(TAG, "Error during pwm0 setPwmDutyCycle!", ex);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                // Don't care
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                // Don't care
+            }
+        });
+    }
+
     @Override
     protected void onDestroy() {
         try {
@@ -93,6 +134,8 @@ public class MainActivity extends AppCompatActivity {
 
             pin22.unregisterGpioCallback(pin22Callback);
             pin22.close();
+
+            pwm0.close();
         } catch (IOException ex) {
             Log.e(TAG, "Error during onDestroy!", ex);
         }
