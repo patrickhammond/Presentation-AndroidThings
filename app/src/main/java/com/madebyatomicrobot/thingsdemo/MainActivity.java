@@ -13,8 +13,10 @@ import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.GpioCallback;
 import com.google.android.things.pio.PeripheralManagerService;
 import com.google.android.things.pio.Pwm;
+import com.google.android.things.pio.UartDevice;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getName();
@@ -22,6 +24,9 @@ public class MainActivity extends AppCompatActivity {
     private PeripheralManagerService service;
     private ToggleButton ledToggleView;
     private SeekBar ledBrightnessView;
+    private SeekBar redView;
+    private SeekBar greenView;
+    private SeekBar blueView;
 
     private Gpio pin17;
 
@@ -29,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
     private GpioCallback pin22Callback;
 
     private Pwm pwm0;
+
+    private UartDevice uart0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
         setupDemo1();
         setupDemo2();
         setupDemo3();
+        setupDemo4();
     }
 
     private void setupDemo1() {
@@ -127,6 +135,54 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void setupDemo4() {
+        redView = (SeekBar) findViewById(R.id.red);
+        greenView = (SeekBar) findViewById(R.id.green);
+        blueView = (SeekBar) findViewById(R.id.blue);
+
+        try {
+            uart0 = service.openUartDevice("UART0");
+            uart0.setBaudrate(9600);
+            uart0.setDataSize(8);
+            uart0.setParity(UartDevice.PARITY_NONE);
+            uart0.setStopBits(1);
+        } catch (IOException ex) {
+            Log.e(TAG, "Error during onCreate!", ex);
+        }
+
+        OnSeekBarChangeListener colorListener = new OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                int red = redView.getProgress();
+                int green = greenView.getProgress();
+                int blue = blueView.getProgress();
+
+                try {
+                    String serialMessage = red + " " + green + " " + blue + "\n";
+                    Log.v(TAG, serialMessage);
+                    byte[] bytes = serialMessage.getBytes(Charset.forName("ASCII"));
+                    uart0.write(bytes, bytes.length);
+                } catch (IOException ex) {
+                    Log.e(TAG, "Error during UART onProgressChanged!", ex);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        };
+
+        redView.setOnSeekBarChangeListener(colorListener);
+        greenView.setOnSeekBarChangeListener(colorListener);
+        blueView.setOnSeekBarChangeListener(colorListener);
+    }
+
     @Override
     protected void onDestroy() {
         try {
@@ -136,6 +192,8 @@ public class MainActivity extends AppCompatActivity {
             pin22.close();
 
             pwm0.close();
+
+            uart0.close();
         } catch (IOException ex) {
             Log.e(TAG, "Error during onDestroy!", ex);
         }
