@@ -4,19 +4,10 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.widget.SeekBar
-import android.widget.ToggleButton
-import com.google.android.things.pio.Gpio
-import com.google.android.things.pio.GpioCallback
-import com.google.android.things.pio.PeripheralManagerService
-import com.google.android.things.pio.Pwm
 import android.widget.SeekBar.OnSeekBarChangeListener
-
-
-
-
-
-
-
+import android.widget.ToggleButton
+import com.google.android.things.pio.*
+import java.nio.charset.Charset
 
 
 class MainActivity : AppCompatActivity() {
@@ -26,12 +17,18 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var ledBrightnessView: SeekBar
 
+    private lateinit var redView: SeekBar
+    private lateinit var greenView: SeekBar
+    private lateinit var blueView: SeekBar
+
     private lateinit var pin17: Gpio
 
     private lateinit var pin22: Gpio
     private lateinit var pin22Callback: GpioCallback
 
     private lateinit var pwm0: Pwm
+
+    private lateinit var uart0: UartDevice
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,6 +39,7 @@ class MainActivity : AppCompatActivity() {
         setupDemo1()
         setupDemo2()
         setupDemo3()
+        setupDemo4()
     }
 
     private fun setupDemo1() {
@@ -91,6 +89,38 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    private fun setupDemo4() {
+        redView = findViewById(R.id.red) as SeekBar
+        greenView = findViewById(R.id.green) as SeekBar
+        blueView = findViewById(R.id.blue) as SeekBar
+
+        uart0 = service.openUartDevice("UART0")
+        uart0.setBaudrate(9600)
+        uart0.setDataSize(8)
+        uart0.setParity(UartDevice.PARITY_NONE)
+        uart0.setStopBits(1)
+
+        val colorListener = object : OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                val red = redView.progress
+                val green = greenView.progress
+                val blue = blueView.progress
+
+                val serialMessage = "$red $green $blue\n"
+                val bytes = serialMessage.toByteArray(Charset.forName("ASCII"))
+                uart0.write(bytes, bytes.size)
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar) { /* Don't care */ }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar) { /* Don't care */ }
+        }
+
+        redView.setOnSeekBarChangeListener(colorListener)
+        greenView.setOnSeekBarChangeListener(colorListener)
+        blueView.setOnSeekBarChangeListener(colorListener)
+    }
+
     override fun onDestroy() {
         pin17.close()
 
@@ -98,6 +128,8 @@ class MainActivity : AppCompatActivity() {
         pin22.close()
 
         pwm0.close()
+
+        uart0.close()
 
         super.onDestroy()
     }
